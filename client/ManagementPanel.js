@@ -51,7 +51,7 @@ function ManagementPanel({ onDataChanged }) {
         try {
             var loc = zoneCoords(alertForm.zone);
             var payload = Object.assign({}, alertForm, { location_label: alertForm.zone, source: "admin", people: Number(alertForm.people) });
-            var res = await fetch("/api/requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            var res = await fetch(apiUrl("/api/requests"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             if (res.ok) { showFeedback("✅ Alert added to the system!"); setAlertForm(initAlert); if (onDataChanged) onDataChanged(); }
             else showFeedback("Failed to add alert", false);
         } catch(err) { showFeedback("Network error", false); }
@@ -65,7 +65,7 @@ function ManagementPanel({ onDataChanged }) {
         setLoading(true);
         try {
             var payload = Object.assign({}, warnForm, { location_label: warnForm.zone, source: "user", people: Number(warnForm.people) });
-            var res = await fetch("/api/requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            var res = await fetch(apiUrl("/api/requests"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             if (res.ok) { showFeedback("📡 Warning broadcast!"); setWarnForm(initWarn); if (onDataChanged) onDataChanged(); }
             else showFeedback("Failed to broadcast warning", false);
         } catch(err) { showFeedback("Network error", false); }
@@ -80,7 +80,7 @@ function ManagementPanel({ onDataChanged }) {
         try {
             var loc = zoneCoords(respForm.zone);
             var payload = { name: respForm.name, type: respForm.type, status: respForm.status, lat: loc.lat, lng: loc.lng, zone: respForm.zone };
-            var res = await fetch("/api/responders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            var res = await fetch(apiUrl("/api/responders"), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             if (res.ok) { showFeedback("🚑 Responder deployed!"); setRespForm(initResp); if (onDataChanged) onDataChanged(); }
             else showFeedback("Failed to add responder", false);
         } catch(err) { showFeedback("Network error", false); }

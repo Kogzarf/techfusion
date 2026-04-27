@@ -24,8 +24,8 @@ function SelfHealingPanel() {
     const fetchAll = async () => {
         try {
             const [reqRes, histRes] = await Promise.all([
-                fetch("/api/requests"),
-                fetch("/api/selfheal/history"),
+                fetch(apiUrl("/api/requests")),
+                fetch(apiUrl("/api/selfheal/history")),
             ]);
             const reqData  = await reqRes.json();
             const histData = await histRes.json();
@@ -70,7 +70,7 @@ function SelfHealingPanel() {
     const doAssign = async function(reqId) {
         setLoading(function(p) { return Object.assign({}, p, { [reqId]: true }); });
         try {
-            const res = await fetch("/api/selfheal/" + reqId + "/assign", { method: "POST" });
+            const res = await fetch(apiUrl("/api/selfheal/" + reqId + "/assign"), { method: "POST" });
             const data = await res.json();
             if (data.status === "assigned") {
                 setStatuses(function(p) { return Object.assign({}, p, { [reqId]: {
@@ -89,7 +89,7 @@ function SelfHealingPanel() {
     };
 
     const doAck = async function(reqId) {
-        await fetch("/api/selfheal/" + reqId + "/acknowledge", { method: "POST" });
+        await fetch(apiUrl("/api/selfheal/" + reqId + "/acknowledge"), { method: "POST" });
         setStatuses(function(p) {
             var s = p[reqId];
             return s ? Object.assign({}, p, { [reqId]: Object.assign({}, s, { acknowledged: true }) }) : p;
@@ -99,7 +99,7 @@ function SelfHealingPanel() {
 
     const doReject = async function(reqId) {
         setLoading(function(p) { return Object.assign({}, p, { [reqId + "_rej"]: true }); });
-        const res = await fetch("/api/selfheal/" + reqId + "/reject", { method: "POST" });
+        const res = await fetch(apiUrl("/api/selfheal/" + reqId + "/reject"), { method: "POST" });
         const data = await res.json();
         if (data.status === "reassigned") {
             setStatuses(function(p) {
@@ -120,7 +120,7 @@ function SelfHealingPanel() {
     const openDetail = async function(reqId) {
         setSelected(reqId);
         try {
-            const res = await fetch("/api/selfheal/" + reqId + "/status");
+            const res = await fetch(apiUrl("/api/selfheal/" + reqId + "/status"));
             if (res.ok) {
                 const data = await res.json();
                 setDetail(data);

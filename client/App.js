@@ -41,10 +41,10 @@ function App() {
     const fetchData = useCallback(async () => {
         try {
             const [heatRes, reqRes, respRes, alertRes] = await Promise.all([
-                fetch("/api/heatmap"),
-                fetch("/api/requests"),
-                fetch("/api/responders"),
-                fetch("/api/alerts"),
+                fetch(apiUrl("/api/heatmap")),
+                fetch(apiUrl("/api/requests")),
+                fetch(apiUrl("/api/responders")),
+                fetch(apiUrl("/api/alerts")),
             ]);
             const [heatData, reqData, respData, alertData] = await Promise.all([
                 heatRes.json(), reqRes.json(), respRes.json(), alertRes.json()
@@ -94,7 +94,7 @@ function App() {
         e.preventDefault();
         if (!form.desc.trim()) return;
         try {
-            const res = await fetch("/api/requests", {
+            const res = await fetch(apiUrl("/api/requests"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form),
@@ -114,7 +114,7 @@ function App() {
 
     const dismissAlert = async (id) => {
         try {
-            await fetch("/api/requests/" + id, { method: "DELETE" });
+            await fetch(apiUrl("/api/requests/" + id), { method: "DELETE" });
             await fetchData();
             showToast("Alert dismissed");
         } catch(err) { showToast("Failed to dismiss", "error"); }
