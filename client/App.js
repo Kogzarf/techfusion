@@ -176,6 +176,8 @@ function App() {
                     <NavItem id="heatmap"   icon="map"              label="Live Heatmap" />
                     <NavItem id="alerts"    icon="bell"             label="Alert Feed" />
                     <NavItem id="flow"      icon="network"          label="Network Flow" />
+                    <NavItem id="selfheal"  icon="shield-check"    label="Self-Healing" />
+                    <NavItem id="manage"    icon="settings"         label="Management" />
                 </nav>
                 <div className="mt-auto glass p-4 rounded-xl border border-white/5 bg-white/5">
                     <div className="flex items-center space-x-2 text-xs text-success mb-1">
@@ -193,7 +195,10 @@ function App() {
                         <h2 className="text-3xl font-bold text-white mb-1">
                             {activeTab === "dashboard" ? "Operational Overview" :
                              activeTab === "heatmap"   ? "Emergency Heatmap" :
-                             activeTab === "alerts"    ? "Live Alert Feed" : "Network Flow Intelligence"}
+                             activeTab === "alerts"    ? "Live Alert Feed" :
+                             activeTab === "selfheal"  ? "Self-Healing Task Engine" :
+                             activeTab === "manage"    ? "System Management" :
+                             "Network Flow Intelligence"}
                         </h2>
                         <p className="text-text-muted text-sm">Real-time situational awareness and network health monitoring.</p>
                     </div>
@@ -430,6 +435,20 @@ function App() {
                                 </div>
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* ── Self-Healing Tab ── */}
+                {activeTab === "selfheal" && (
+                    <div className="glass card border border-white/5">
+                        <SelfHealingPanel />
+                    </div>
+                )}
+
+                {/* ── Management Tab ── */}
+                {activeTab === "manage" && (
+                    <div className="glass card border border-white/5">
+                        <ManagementPanel onDataChanged={fetchData} />
                     </div>
                 )}
             </main>

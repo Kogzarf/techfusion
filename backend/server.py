@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from flask import Flask, jsonify, request, send_from_directory
 from assignment_engine import AssignmentEngine
 from requests_db import requests_db
+from self_healing import SelfHealingEngine
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -17,10 +18,25 @@ logger = logging.getLogger(__name__)
 
 engine = AssignmentEngine()
 
+# Give responders lat/lng so routing works
+_resp_coords = {
+    "r1": (12.9716, 77.6011),
+    "r2": (12.9352, 77.6245),
+    "r3": (13.0055, 77.5707),
+    "r4": (12.9081, 77.6476),
+}
+for r in engine.responders:
+    lat, lng = _resp_coords.get(r["id"], (12.97, 77.59))
+    r["lat"] = lat
+    r["lng"] = lng
+
 # Resolve the client directory (one level up from backend/)
 CLIENT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "client"))
 
 app = Flask(__name__, static_folder=CLIENT_DIR, static_url_path="")
+
+# Initialise self-healing engine (needs app context so requests_db is populated)
+healing = SelfHealingEngine(engine, requests_db)
 
 # ── Frontend serving ───────────────────────────────────────────────────────────
 @app.route("/")
@@ -50,9 +66,27 @@ def health():
     return jsonify({"status": "ok", "version": "2.5.0"})
 
 # ── Responders ─────────────────────────────────────────────────────────────────
-@app.route("/api/responders")
-def get_responders():
-    """Fetch all active responders."""
+@app.route("/api/responders", methods=["GET", "POST", "OPTIONS"])
+def manage_responders():
+    """Fetch all active responders or add a new one."""
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
+    if request.method == "POST":
+        data = request.json or {}
+        new_resp = {
+            "id": f"r{len(engine.responders)+1}_{str(uuid.uuid4())[:4]}",
+            "name": data.get("name", "Unknown"),
+            "type": data.get("type", "General"),
+            "status": data.get("status", "available"),
+            "lat": data.get("lat", 12.9716),
+            "lng": data.get("lng", 77.5946),
+            "zone": data.get("zone", "Bengaluru")
+        }
+        engine.responders.append(new_resp)
+        logger.info(f"Deployed new responder: {new_resp['name']} [{new_resp['id']}]")
+        return jsonify({"status": "success", "responder": new_resp}), 201
+
     try:
         responders = engine.get_responders()
         return jsonify({"responders": responders, "count": len(responders)})
@@ -170,6 +204,42 @@ def fail_responder(request_id):
         "status": "success",
         "reassignedTo": responder,
     })
+
+# ── Self-Healing Endpoints ─────────────────────────────────────────────────────
+@app.route("/api/selfheal/<request_id>/assign", methods=["POST"])
+def selfheal_assign(request_id):
+    """Self-healing initial assignment for a request."""
+    result = healing.assign(request_id)
+    if not result:
+        return jsonify({"status": "no_responders", "request_id": request_id}), 200
+    return jsonify({"status": "assigned", "request_id": request_id, **result})
+
+@app.route("/api/selfheal/<request_id>/acknowledge", methods=["POST"])
+def selfheal_ack(request_id):
+    """Responder acknowledges the task — stops the reassignment timer."""
+    ok = healing.acknowledge(request_id)
+    return jsonify({"status": "acknowledged" if ok else "not_found", "request_id": request_id})
+
+@app.route("/api/selfheal/<request_id>/reject", methods=["POST"])
+def selfheal_reject(request_id):
+    """Responder rejects the task — triggers immediate reassignment."""
+    result = healing.reject(request_id)
+    if not result:
+        return jsonify({"status": "chain_exhausted", "request_id": request_id}), 200
+    return jsonify({"status": "reassigned", "request_id": request_id, **result})
+
+@app.route("/api/selfheal/<request_id>/status", methods=["GET"])
+def selfheal_status(request_id):
+    """Get the current self-healing assignment status for a request."""
+    status = healing.get_status(request_id)
+    if not status:
+        return jsonify({"error": "No record found"}), 404
+    return jsonify(status)
+
+@app.route("/api/selfheal/history", methods=["GET"])
+def selfheal_history():
+    """Get the full reassignment event history."""
+    return jsonify({"events": healing.get_history(), "count": len(healing.get_history())})
 
 if __name__ == "__main__":
     logger.info("Starting TechFusion Backend on port 5000...")
